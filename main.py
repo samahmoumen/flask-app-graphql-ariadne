@@ -1,54 +1,67 @@
-from api import app, db
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
-
-
-
-from ariadne import load_schema_from_path, make_executable_schema, graphql_sync, ObjectType
 from flask import request, jsonify
-from api.queries import resolve_todos
-from api import models
+from ariadne import (
+    load_schema_from_path, 
+    make_executable_schema, 
+    graphql_sync, 
+    snake_case_fallback_resolvers, 
+    ObjectType
+)
+from ariadne.explorer import ExplorerPlayground
+PLAYGROUND_HTML = ExplorerPlayground(title="Todo API").html(None)
 
-# Create Query type and attach resolvers
+# Import the app and db we already created in the api folder
+from api import app, db
+from api.queries import resolve_todos, resolve_todo
+from api.mutations import (
+    resolve_create_todo, 
+    resolve_mark_done, 
+    resolve_delete_todo, 
+    resolve_update_due_date
+)
+
+# 1. Map the Query fields to their Python resolvers
 query = ObjectType("Query")
 query.set_field("todos", resolve_todos)
+query.set_field("todo", resolve_todo)
 
-# Load GraphQL schema
+# 2. Map the Mutation fields to their Python resolvers
+mutation = ObjectType("Mutation")
+mutation.set_field("createTodo", resolve_create_todo)
+mutation.set_field("markDone", resolve_mark_done)
+mutation.set_field("deleteTodo", resolve_delete_todo)
+mutation.set_field("updateDueDate", resolve_update_due_date)
+
+# 3. Load the schema and create the executable schema
 type_defs = load_schema_from_path("schema.graphql")
+schema = make_executable_schema(
+    type_defs, [query, mutation], snake_case_fallback_resolvers
+)
 
-# Make executable schema (no snake_case_fallback_resolvers)
-schema = make_executable_schema(type_defs, query)
+@app.route('/')
+def hello():
+    return 'Hello!'
 
-# Flask route for GraphQL Playground (GET)
 @app.route("/graphql", methods=["GET"])
 def graphql_playground():
-    # Simple HTML to display GraphQL Playground
-    playground_html = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset=utf-8/>
-      <title>GraphQL Playground</title>
-      <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/graphql-playground-react@1.7.20/build/static/css/index.css" />
-      <script src="//cdn.jsdelivr.net/npm/graphql-playground-react@1.7.20/build/static/js/middleware.js"></script>
-    </head>
-    <body>
-      <div id="root"></div>
-      <script>
-        window.addEventListener('load', function() {
-          GraphQLPlayground.init(document.getElementById('root'), { endpoint: '/graphql' })
-        })
-      </script>
-    </body>
-    </html>
-    """
-    return playground_html
+    # This serves the interactive UI for testing
+    return PLAYGROUND_HTML, 200
 
-# Flask route to handle GraphQL POST requests
 @app.route("/graphql", methods=["POST"])
 def graphql_server():
     data = request.get_json()
-    success, result = graphql_sync(schema, data, context_value=request, debug=app.debug)
-    return jsonify(result)
+
+    success, result = graphql_sync(
+        schema,
+        data,
+        context_value=request,
+        debug=app.debug
+    )
+
+    status_code = 200 if success else 400
+    return jsonify(result), status_code
+
+# This part ensures the database tables are created before the app starts
+if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True)
