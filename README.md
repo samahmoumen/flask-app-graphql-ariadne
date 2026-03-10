@@ -44,6 +44,13 @@ type Query {
 
 ```
 
+## GraphQL Playground
+
+![GraphQL Playground](images/graphql1.png)
+![GraphQL Playground](images/graphql2.png)
+![GraphQL Playground](images/graphql3.png)
+![GraphQL Playground](images/graphql4.png)
+
 ### 🔹 Ariadne: The Execution Engine (The Bridge)
 
 Ariadne parses the `.graphql` schema and maps fields to Python functions known as **Resolvers**. It translates the GraphQL request into executable Python logic.
