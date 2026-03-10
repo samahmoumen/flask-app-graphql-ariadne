@@ -46,9 +46,13 @@ type Query {
 
 ## GraphQL Playground
 
+**Mutation**
 ![GraphQL Playground](images/graphql1.png)
+**getAllTodos**
 ![GraphQL Playground](images/graphql2.png)
+**getOneTodo**
 ![GraphQL Playground](images/graphql3.png)
+**updateOneTodo**
 ![GraphQL Playground](images/graphql4.png)
 
 ### 🔹 Ariadne: The Execution Engine (The Bridge)
